@@ -27,11 +27,11 @@ func TestHeader_types(t *testing.T) {
 				E bool
 			}{},
 			[]string{
-				"Z: ",
 				"B: 0",
 				"C: 0",
 				"D: 0",
 				"E: false",
+				"Z: ",
 			},
 		},
 		{
