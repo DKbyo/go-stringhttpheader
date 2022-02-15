@@ -20,14 +20,14 @@ func TestHeader_types(t *testing.T) {
 		{
 			// basic primitives
 			struct {
-				A string
+				A string `header:"Z"`
 				B int
 				C uint
 				D float32
 				E bool
 			}{},
 			[]string{
-				"A: ",
+				"Z: ",
 				"B: 0",
 				"C: 0",
 				"D: 0",

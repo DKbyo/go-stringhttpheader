@@ -28,7 +28,7 @@ import (
 const tagName = "header"
 
 // Version ...
-const Version = "0.5.0"
+const Version = "0.5.2"
 
 var timeType = reflect.TypeOf(time.Time{})
 var headerType = reflect.TypeOf(http.Header{})
@@ -153,7 +153,6 @@ func reflectValue(header []string, val reflect.Value) ([]string, error) {
 
 			name = sf.Name
 		}
-
 		if opts.Contains("omitempty") && isEmptyValue(sv) {
 			continue
 		}
