@@ -1,4 +1,4 @@
-// Package httpheader implements encoding of structs into http.Header fields.
+// Package stringhttpheader implements encoding of structs into []string.
 //
 // As a simple example:
 //
@@ -8,14 +8,12 @@
 // 	}
 //
 // 	opt := Options{"application/json", 2}
-// 	h, _ := httpheader.Header(opt)
+// 	h, _ := stringhttpheader.Header(opt)
 // 	fmt.Printf("%#v", h)
 // 	// will output:
-// 	// http.Header{"Content-Type":[]string{"application/json"},"Length":[]string{"2"}}
+// 	// []string{"Content-Type": application/json","Length:2"}
 //
-// The exact mapping between Go values and http.Header is described in the
-// documentation for the Header() function.
-package httpheader
+package stringhttpheader
 
 import (
 	"fmt"
@@ -39,10 +37,10 @@ var encoderType = reflect.TypeOf(new(Encoder)).Elem()
 // Encoder is an interface implemented by any type that wishes to encode
 // itself into Header fields in a non-standard way.
 type Encoder interface {
-	EncodeHeader(key string, v *http.Header) error
+	EncodeHeader(key string, v []string) ([]string, error)
 }
 
-// Header returns the http.Header encoding of v.
+// Header returns the []string encoding of v.
 //
 // Header expects to be passed a struct, and traverses it recursively using the
 // following encoding rules.
@@ -103,8 +101,8 @@ type Encoder interface {
 //
 // Multiple fields that encode to the same Header filed name will be included
 // as multiple Header values of the same name.
-func Header(v interface{}) (http.Header, error) {
-	h := make(http.Header)
+func Header(v interface{}) ([]string, error) {
+	h := []string{}
 	val := reflect.ValueOf(v)
 	for val.Kind() == reflect.Ptr {
 		if val.IsNil() {
@@ -118,17 +116,17 @@ func Header(v interface{}) (http.Header, error) {
 	}
 
 	if val.Kind() != reflect.Struct {
-		return nil, fmt.Errorf("httpheader: Header() expects struct input. Got %v", val.Kind())
+		return nil, fmt.Errorf("stringhttpheader: Header() expects struct input. Got %v", val.Kind())
 	}
 
-	err := reflectValue(h, val)
+	h, err := reflectValue(h, val)
 	return h, err
 }
 
 // reflectValue populates the header fields from the struct fields in val.
 // Embedded structs are followed recursively (using the rules defined in the
 // Values function documentation) breadth-first.
-func reflectValue(header http.Header, val reflect.Value) error {
+func reflectValue(header []string, val reflect.Value) ([]string, error) {
 	var embedded []reflect.Value
 
 	typ := val.Type()
@@ -164,16 +162,18 @@ func reflectValue(header http.Header, val reflect.Value) error {
 			}
 
 			m := sv.Interface().(Encoder)
-			if err := m.EncodeHeader(name, &header); err != nil {
-				return err
+			newHeader, err := m.EncodeHeader(name, header)
+			if err != nil {
+				return header, err
 			}
+			header = newHeader
 			continue
 		}
 
 		if sv.Kind() == reflect.Slice || sv.Kind() == reflect.Array {
 			for i := 0; i < sv.Len(); i++ {
 				k := name
-				header.Add(k, valueString(sv.Index(i), opts))
+				header = append(header, fmt.Sprintf("%s: %v", k, valueString(sv.Index(i), opts)))
 			}
 			continue
 		}
@@ -186,36 +186,40 @@ func reflectValue(header http.Header, val reflect.Value) error {
 		}
 
 		if sv.Type() == timeType {
-			header.Add(name, valueString(sv, opts))
+			header = append(header, fmt.Sprintf("%s: %v", name, valueString(sv, opts)))
 			continue
 		}
+
 		if sv.Type() == headerType {
 			h := sv.Interface().(http.Header)
 			for k, vs := range h {
 				for _, v := range vs {
-					header.Add(k, v)
+					header = append(header, fmt.Sprintf("%s: %v", k, v))
 				}
 			}
 			continue
 		}
 
 		if sv.Kind() == reflect.Struct {
-			if err := reflectValue(header, sv); err != nil {
-				return err
+			var err error
+			header, err = reflectValue(header, sv)
+			if err != nil {
+				return header, err
 			}
 			continue
 		}
-
-		header.Add(name, valueString(sv, opts))
+		header = append(header, fmt.Sprintf("%s: %v", name, valueString(sv, opts)))
 	}
 
 	for _, f := range embedded {
-		if err := reflectValue(header, f); err != nil {
-			return err
+		var err error
+		header, err = reflectValue(header, f)
+		if err != nil {
+			return header, err
 		}
 	}
 
-	return nil
+	return header, nil
 }
 
 // valueString returns the string representation of a value.
@@ -292,6 +296,6 @@ func (o tagOptions) Contains(option string) bool {
 }
 
 // Encode is an alias of Header function
-func Encode(v interface{}) (http.Header, error) {
+func Encode(v interface{}) ([]string, error) {
 	return Header(v)
 }

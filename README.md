@@ -1,15 +1,15 @@
-# go-httpheader
+# go-stringhttpheader
 
-go-httpheader is a Go library for encoding structs into Header fields.
+go-stringhttpheader is a Go library for encoding structs into Header fields. Useful to create headers for [GCP Buckets Go library](https://pkg.go.dev/cloud.google.com/go/storage)
 
-[![Build Status](https://github.com/mozillazg/go-httpheader/workflows/CI/badge.svg?branch=master)](https://github.com/mozillazg/go-httpheader/actions)
-[![Coverage Status](https://coveralls.io/repos/github/mozillazg/go-httpheader/badge.svg?branch=master)](https://coveralls.io/github/mozillazg/go-httpheader?branch=master)
-[![Go Report Card](https://goreportcard.com/badge/github.com/mozillazg/go-httpheader)](https://goreportcard.com/report/github.com/mozillazg/go-httpheader)
-[![GoDoc](https://godoc.org/github.com/mozillazg/go-httpheader?status.svg)](https://godoc.org/github.com/mozillazg/go-httpheader)
+[![Build Status](https://github.com/dkbyo/go-stringhttpheader/workflows/CI/badge.svg?branch=master)](https://github.com/dkbyo/go-stringhttpheader/actions)
+[![Coverage Status](https://coveralls.io/repos/github/dkbyo/go-stringhttpheader/badge.svg?branch=master)](https://coveralls.io/github/dkbyo/go-stringhttpheader?branch=master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/dkbyo/go-stringhttpheader)](https://goreportcard.com/report/github.com/dkbyo/go-stringhttpheader)
+[![GoDoc](https://godoc.org/github.com/dkbyo/go-stringhttpheader?status.svg)](https://godoc.org/github.com/dkbyo/go-stringhttpheader)
 
 ## install
 
-`go get -u github.com/mozillazg/go-httpheader`
+`go get -u github.com/dkbyo/go-stringhttpheader`
 
 
 ## usage
@@ -20,8 +20,7 @@ package main
 import (
 	"fmt"
 	"net/http"
-
-	"github.com/mozillazg/go-httpheader"
+	"github.com/dkbyo/go-stringhttpheader"
 )
 
 type Options struct {
@@ -48,20 +47,17 @@ func main() {
 			"X-Test-2": []string{"666"},
 		},
 	}
-	h, _ := httpheader.Header(opt)
+	h, _ := stringhttpheader.Header(opt)
 	fmt.Printf("%#v", h)
 	// h:
-	// http.Header{
-	//	"X-Test-1":     []string{"233"},
-	//	"X-Test-2":     []string{"666"},
-	//	"Content-Type": []string{"application/json"},
-	//	"Length":       []string{"2"},
-	//	"X-Array":      []string{"test1", "test2"},
-	//	"X-Empty-N":    []string{"n"},
+	// string[]{
+	//	"X-Test-1: 233",
+	//	"X-Test-2: 666",
+	//	"Content-Type: application/json",
+	//	"Length: 2",
+	//	"X-Array: test1, test2",
+	//	"X-Empty-N: n",
 	// }
 	
-	// decode
-	var decode Options
-	httpheader.Decode(h, &decode)
 }
 ```

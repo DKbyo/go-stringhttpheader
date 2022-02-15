@@ -1,4 +1,4 @@
-package httpheader
+package stringhttpheader
 
 import (
 	"fmt"
@@ -15,7 +15,7 @@ func TestHeader_types(t *testing.T) {
 
 	tests := []struct {
 		in   interface{}
-		want http.Header
+		want []string
 	}{
 		{
 			// basic primitives
@@ -26,12 +26,12 @@ func TestHeader_types(t *testing.T) {
 				D float32
 				E bool
 			}{},
-			http.Header{
-				"A": []string{""},
-				"B": []string{"0"},
-				"C": []string{"0"},
-				"D": []string{"0"},
-				"E": []string{"false"},
+			[]string{
+				"A: ",
+				"B: 0",
+				"C: 0",
+				"D: 0",
+				"E: false",
 			},
 		},
 		{
@@ -46,11 +46,11 @@ func TestHeader_types(t *testing.T) {
 				C: &strPtr,
 				D: &timeVal,
 			},
-			http.Header{
-				"A": []string{str},
-				"B": []string{""},
-				"C": []string{str},
-				"D": []string{"Sat, 01 Jan 2000 12:34:56 GMT"},
+			[]string{
+				fmt.Sprintf("A: %s", str),
+				fmt.Sprintf("B: %s", ""),
+				fmt.Sprintf("C: %s", str),
+				fmt.Sprintf("D: %s", "Sat, 01 Jan 2000 12:34:56 GMT"),
 			},
 		},
 		{
@@ -66,11 +66,15 @@ func TestHeader_types(t *testing.T) {
 				C: [2]string{"a", "b"},
 				D: []bool{true, false},
 			},
-			http.Header{
-				"A": []string{"a", "b"},
-				"B": {"string", "string"},
-				"C": []string{"a", "b"},
-				"D": {"1", "0"},
+			[]string{
+				fmt.Sprintf("A: %s", "a"),
+				fmt.Sprintf("A: %s", "b"),
+				fmt.Sprintf("B: %s", str),
+				fmt.Sprintf("B: %s", str),
+				fmt.Sprintf("C: %s", "a"),
+				fmt.Sprintf("C: %s", "b"),
+				fmt.Sprintf("D: %s", "1"),
+				fmt.Sprintf("D: %s", "0"),
 			},
 		},
 		{
@@ -91,25 +95,25 @@ func TestHeader_types(t *testing.T) {
 					"G": []string{"gg"},
 				},
 			},
-			http.Header{
-				"A": []string{"Sat, 01 Jan 2000 12:34:56 GMT"},
-				"B": []string{"946730096"},
-				"C": []string{"1"},
-				"D": []string{"0"},
-				"F": []string{"f1"},
-				"G": []string{"gg"},
+			[]string{
+				fmt.Sprintf("A: %s", "Sat, 01 Jan 2000 12:34:56 GMT"),
+				fmt.Sprintf("B: %s", "946730096"),
+				fmt.Sprintf("C: %s", "1"),
+				fmt.Sprintf("D: %s", "0"),
+				fmt.Sprintf("F: %s", "f1"),
+				fmt.Sprintf("G: %s", "gg"),
 			},
 		},
 		{
 			nil,
-			http.Header{},
+			[]string{},
 		},
 		{
 			&struct {
 				A string
 			}{"test"},
-			http.Header{
-				"A": []string{"test"},
+			[]string{
+				fmt.Sprintf("A: %s", "test"),
 			},
 		},
 	}
@@ -148,10 +152,10 @@ func TestHeader_omitEmpty(t *testing.T) {
 		t.Errorf("Header(%#v) returned error: %v", s, err)
 	}
 
-	want := http.Header{
-		"A":         []string{""},
-		"Omitempty": []string{""},
-		"E":         []string{""}, // E is included because the pointer is not empty, even though the string being pointed to is
+	want := []string{
+		"A: ",
+		"omitempty: ",
+		"E: ", // E is included because the pointer is not empty, even though the string being pointed to is
 	}
 	if !reflect.DeepEqual(want, v) {
 		t.Errorf("Header(%#v) returned %v, want %v", s, v, want)
@@ -183,19 +187,19 @@ type F struct {
 func TestHeader_embeddedStructs(t *testing.T) {
 	tests := []struct {
 		in   interface{}
-		want http.Header
+		want []string
 	}{
 		{
 			A{B{C: "foo"}},
-			http.Header{"C": []string{"foo"}},
+			[]string{"C: foo"},
 		},
 		{
 			D{B: B{C: "bar"}, C: "foo"},
-			http.Header{"C": []string{"foo", "bar"}},
+			[]string{"C: foo", "C: bar"},
 		},
 		{
 			F{e{B: B{C: "bar"}, C: "foo"}}, // With unexported embed
-			http.Header{"C": []string{"foo", "bar"}},
+			[]string{"C: foo", "C: bar"},
 		},
 	}
 
@@ -220,11 +224,12 @@ func TestHeader_invalidInput(t *testing.T) {
 
 type EncodedArgs []string
 
-func (m EncodedArgs) EncodeHeader(key string, v *http.Header) error {
+func (m EncodedArgs) EncodeHeader(key string, v []string) ([]string, error) {
+	newV := v
 	for i, arg := range m {
-		v.Set(fmt.Sprintf("%s.%d", key, i), arg)
+		newV = append(newV, fmt.Sprintf("%s.%d: %s", key, i, arg))
 	}
-	return nil
+	return newV, nil
 }
 
 func TestHeader_Marshaler(t *testing.T) {
@@ -236,10 +241,10 @@ func TestHeader_Marshaler(t *testing.T) {
 		t.Errorf("Header(%+v) returned error: %v", s, err)
 	}
 
-	want := http.Header{
-		"Arg.0": []string{"a"},
-		"Arg.1": []string{"b"},
-		"Arg.2": []string{"c"},
+	want := []string{
+		"Arg.0: a",
+		"Arg.1: b",
+		"Arg.2: c",
 	}
 	if !reflect.DeepEqual(want, v) {
 		t.Errorf("Header(%+v) returned %v, want %v", s, v, want)
@@ -255,7 +260,7 @@ func TestHeader_MarshalerWithNilPointer(t *testing.T) {
 		t.Errorf("Header(%+v) returned error: %v", s, err)
 	}
 
-	want := http.Header{}
+	want := []string{}
 	if !reflect.DeepEqual(want, v) {
 		t.Errorf("Header(%+v) returned %v, want %v", s, v, want)
 	}
