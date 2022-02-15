@@ -73,8 +73,8 @@ func TestHeader_types(t *testing.T) {
 				fmt.Sprintf("B: %s", str),
 				fmt.Sprintf("C: %s", "a"),
 				fmt.Sprintf("C: %s", "b"),
-				fmt.Sprintf("D: %s", "1"),
 				fmt.Sprintf("D: %s", "0"),
+				fmt.Sprintf("D: %s", "1"),
 			},
 		},
 		{
@@ -154,8 +154,8 @@ func TestHeader_omitEmpty(t *testing.T) {
 
 	want := []string{
 		"A: ",
-		"omitempty: ",
 		"E: ", // E is included because the pointer is not empty, even though the string being pointed to is
+		"omitempty: ",
 	}
 	if !reflect.DeepEqual(want, v) {
 		t.Errorf("Header(%#v) returned %v, want %v", s, v, want)
@@ -195,11 +195,11 @@ func TestHeader_embeddedStructs(t *testing.T) {
 		},
 		{
 			D{B: B{C: "bar"}, C: "foo"},
-			[]string{"C: foo", "C: bar"},
+			[]string{"C: bar", "C: foo"},
 		},
 		{
 			F{e{B: B{C: "bar"}, C: "foo"}}, // With unexported embed
-			[]string{"C: foo", "C: bar"},
+			[]string{"C: bar", "C: foo"},
 		},
 	}
 

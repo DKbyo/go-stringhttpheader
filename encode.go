@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -120,6 +121,7 @@ func Header(v interface{}) ([]string, error) {
 	}
 
 	h, err := reflectValue(h, val)
+	sort.Strings(h)
 	return h, err
 }
 
